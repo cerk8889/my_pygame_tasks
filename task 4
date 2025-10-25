@@ -1,0 +1,50 @@
+mport pygame as pg
+
+FPS = 60
+WIDTH, HEIGHT = 600, 500
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+
+pg.init()
+screen = pg.display.set_mode((WIDTH, HEIGHT))
+screen.fill(WHITE)  # белый фон
+pg.display.set_caption("Игра")
+pg.display.set_icon(pg.image.load(r"images\icon.ico"))
+clock = pg.time.Clock()
+
+pg.display.update()  # запускаем, чтобы отрисовать фон
+
+flag_play, flag_draw = True, False  # flag_draw: True, если находимся в процессе рисования прямоугольника
+while flag_play:
+    clock.tick(FPS)
+
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            pg.quit()
+            flag_play = False
+            break
+    if not flag_play:
+        break
+
+    # изменение состояний объектов:
+    pressed = pg.mouse.get_pressed()
+    if pressed[0]:  # если нажата левая кнопка мыши
+        if flag_draw:  # если флаг активен => уже находимся в процессе рисования прямоугольника
+            current_pos = pg.mouse.get_pos()
+            width, height = current_pos[0] - start_pos[0], current_pos[1] - start_pos[1]
+            screen.fill(WHITE)  # стираем старый контур прямоугольника
+            pg.draw.rect(screen, RED, (start_pos[0], start_pos[1], width, height), 3)  # чтобы сделать новый
+            pg.display.update()  # в целях оптимизации программы имеет смысл здесь обновлять окно
+        else:  # если флаг не был активен => только что зажали кнопку и начали рисовать прямоугольник
+            flag_draw = True
+            start_pos = pg.mouse.get_pos()  # запоминаем левый верхний угол прямоугольника
+    else:
+        if flag_draw:  # если флаг активен => только что отжали кнопку и закончили рисовать прямоугольник
+            flag_draw = False
+            current_pos = pg.mouse.get_pos()
+            width, height = current_pos[0] - start_pos[0], current_pos[1] - start_pos[1]
+            screen.fill(WHITE)
+            pg.draw.rect(screen, RED, (start_pos[0], start_pos[1], width, height))  # заполненный прямоугольник
+            pg.display.update()  # в целях оптимизации программы имеет смысл здесь обновлять окно
+
+    # pg.display.update()  # здесь неоптимально обновлять окно
