@@ -1,0 +1,150 @@
+import pygame
+import random
+
+SCREEN_WIDTH = 300
+SCREEN_HEIGHT = 600
+BLOCK_SIZE = 30
+
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+COLORS = [
+    (0, 255, 255),  # I
+    (255, 165, 0),  # L
+    (0, 0, 255),    # J
+    (255, 255, 0),  # O
+    (0, 255, 0),    # S
+    (128, 0, 128),  # T
+    (255, 0, 0)     # Z
+]
+
+FIGURES = [
+    [[1, 1, 1, 1]],  # I
+    [[1, 0, 0],
+     [1, 1, 1]],    # J
+    [[0, 0, 1],
+     [1, 1, 1]],    # L
+    [[1, 1],
+     [1, 1]],       # O
+    [[0, 1, 1],
+     [1, 1, 0]],    # S
+    [[0, 1, 0],
+     [1, 1, 1]],    # T
+    [[1, 1, 0],
+     [0, 1, 1]]     # Z
+]
+
+class Figure:
+    def __init__(self, x, y):
+        self.y = y
+        self.x = x
+        self.type = random.randint(0, len(FIGURES) - 1)
+        self.color = COLORS[self.type]
+        self.rotation = 0
+
+    def shape(self):
+        return FIGURES[self.type][self.rotation % len(FIGURES[self.type])]
+
+    def rotate(self):
+        self.rotation = (self.rotation + 1) % len(FIGURES[self.type])
+
+class Tetris:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        self.field = [[0 for _ in range(width)] for _ in range(height)]
+        self.figure = None
+        self.score = 0
+
+    def new_figure(self):
+        self.figure = Figure(self.width // 2 - 1, 0)
+
+    def intersects(self):
+        shape = self.figure.shape()
+        for y, row in enumerate(shape):
+            for x, cell in enumerate(row):
+                if cell:
+                    if (self.figure.y + y >= self.height or self.figure.x + x < 0 or self.figure.x + x >= self.width or self.field[self.figure.y + y][self.figure.x + x]):
+                        return True
+        return False
+
+    def freeze(self):
+        shape = self.figure.shape()
+        for y, row in enumerate(shape):
+            for x, cell in enumerate(row):
+                if cell:
+                    self.field[self.figure.y + y][self.figure.x + x] = self.figure.color
+        self.clear_lines()
+        self.new_figure()
+        if self.intersects():
+            self.__init__(self.height, self.width)  # Game Over
+
+    def clear_lines(self):
+        lines_cleared = 0
+        for i in range(self.height - 1, -1, -1):
+            if all(self.field[i]):
+                del self.field[i]
+                self.field.insert(0, [0 for _ in range(self.width)])
+                lines_cleared += 1
+        self.score += lines_cleared ** 2
+
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Тетрис")
+
+game = Tetris(SCREEN_HEIGHT // BLOCK_SIZE, SCREEN_WIDTH // BLOCK_SIZE)
+clock = pygame.time.Clock()
+fall_speed = 500
+last_move_down = pygame.time.get_ticks()
+
+running = True
+game.new_figure()
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                game.figure.x -= 1
+                if game.intersects():
+                    game.figure.x += 1
+            elif event.key == pygame.K_RIGHT:
+                game.figure.x += 1
+                if game.intersects():
+                    game.figure.x -= 1
+            elif event.key == pygame.K_DOWN:
+                game.figure.y += 1
+                if game.intersects():
+                    game.figure.y -= 1
+            elif event.key == pygame.K_UP:
+                game.figure.rotate()
+                if game.intersects():
+                    game.figure.rotate()
+
+    if pygame.time.get_ticks() - last_move_down > fall_speed:
+         game.figure.y += 1
+         if game.intersects():
+            game.figure.y -= 1
+            game.freeze()
+         last_move_down = pygame.time.get_ticks()
+
+for i in range(game.height):
+    for x in range(game.width):
+        if game.field[y][x]:
+            pygame.draw.rect(screen,game.field[y][x],[x * BLOCK_SIZE, y * BLOCK_SIZE])
+
+shape = game.figure.shape()
+for y, row in enumerate(shape):
+    for x, cell in enumerate(row):
+        if cell:
+            pygame.draw.rect(screen, game.figure.color,[game.figure.x + x] * BLOCK_SIZE, (game.figure.y + y))
+
+font = pygame.font.Font(None, 36)
+score_text = font.render(f"Счет: {game.score}", True, WHITE)
+screen.blit(score_text,(10,10))
+
+if game_over:
+    game_over_text = font.render("GAME OVER", True, WHITE)
+    screen.blit(game_over_text, (SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT // 2))
+
+next_figure = Figure(0,0)
